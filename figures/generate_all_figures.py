@@ -76,13 +76,13 @@ def style_ax(ax, grid_axis="y"):
     ax.spines["right"].set_visible(False)
     ax.spines["bottom"].set_color("#6E7378")
     ax.spines["left"].set_color("#6E7378")
-    ax.tick_params(length=2.8, width=0.65, pad=2.8)
+    ax.tick_params(length=2.8, width=0.65, pad=33.0)
     if grid_axis:
         ax.grid(axis=grid_axis, color=GRID, linewidth=0.6)
         ax.set_axisbelow(True)
 
 
-def set_panel(ax, letter, title, pad=24.0):
+def set_panel(ax, letter, title, pad=33.0):
     ax.set_title(f"({letter}) {title}", loc="left", pad=pad, fontsize=8.9)
 
 
@@ -96,8 +96,10 @@ def check_all_artist_overlaps(fig, stem, pad_px=1.8):
     for i, ax in enumerate(fig.axes):
         if not ax.get_visible():
             continue
-        if ax.title.get_visible() and ax.title.get_text().strip():
-            items.append((f"ax[{i}].title='{ax.title.get_text().strip()[:22]}'", ax.title.get_window_extent(renderer)))
+        for tattr, tname in (("title", "title"), ("_left_title", "ltitle"), ("_right_title", "rtitle")):
+            t_obj = getattr(ax, tattr, None)
+            if t_obj is not None and t_obj.get_visible() and t_obj.get_text().strip():
+                items.append((f"ax[{i}].{tname}='{t_obj.get_text().strip()[:24]}'", t_obj.get_window_extent(renderer)))
         leg = ax.get_legend()
         if leg is not None and leg.get_visible():
             items.append((f"ax[{i}].legend", leg.get_window_extent(renderer)))
@@ -143,85 +145,83 @@ def save_fig(fig, stem):
 
 def make_fig01_teaser():
     """3-panel Teaser: Smooth Inside, Fragile at Boundaries across Execution, Imitation, and RL."""
-    fig = plt.figure(figsize=(WIDTH, 2.38), facecolor="white")
-    gs = fig.add_gridspec(1, 3, left=0.02, right=0.98, bottom=0.06, top=0.84, wspace=0.14)
+    fig = plt.figure(figsize=(WIDTH, 2.42), facecolor="white")
+    gs = fig.add_gridspec(1, 3, left=0.015, right=0.985, bottom=0.05, top=0.84, wspace=0.12)
 
     # Panel (a): Physical contact & probing boundary
     ax = fig.add_subplot(gs[0, 0])
     ax.set_xlim(0, 10)
     ax.set_ylim(0, 6.2)
     ax.set_axis_off()
-    set_panel(ax, "a", "Execution: contact boundary (§III–IV)", pad=10.0)
+    ax.set_title("(a) Contact boundary (§III–IV)", loc="center", pad=8.0, fontsize=8.3)
     ax.add_patch(Rectangle((0.1, 0.2), 9.8, 5.7, facecolor="#F7F9FB", edgecolor="#D0D7DE", linewidth=0.7))
-    # Smooth interior band
     ax.add_patch(Rectangle((0.2, 0.3), 5.0, 5.5, facecolor="#EBF3F9", edgecolor="none", alpha=0.65))
-    ax.axvline(5.2, ymin=0.05, ymax=0.95, color=ORANGE, linestyle="--", linewidth=1.3)
-    ax.add_patch(Rectangle((5.2, 0.3), 1.3, 5.5, facecolor="#FDEBD0", edgecolor="none", alpha=0.55))
-    # Curves
+    ax.add_patch(Rectangle((5.2, 0.95), 1.35, 4.85, facecolor="#FDEBD0", edgecolor="none", alpha=0.55))
+    ax.plot([5.2, 5.2], [1.05, 5.65], color=ORANGE, linestyle="--", linewidth=1.25, zorder=3)
     t1 = np.linspace(0.6, 5.2, 40)
-    y_ok = 2.8 + 0.6 * np.sin((t1 - 0.6) * 0.55)
+    y_ok = 2.85 + 0.55 * np.sin((t1 - 0.6) * 0.55)
     ax.plot(t1, y_ok, color=BLUE, linewidth=1.9)
     t2 = np.linspace(5.2, 9.3, 40)
-    y_slip = y_ok[-1] + 1.55 * (1 - np.exp(-(t2 - 5.2) * 0.9))
+    y_slip = y_ok[-1] + 1.50 * (1 - np.exp(-(t2 - 5.2) * 0.9))
     y_safe = y_ok[-1] - 0.55 * (1 - np.exp(-(t2 - 5.2) * 1.1))
     ax.plot(t2, y_slip, color=RED, linestyle="--", linewidth=1.5)
     ax.plot(t2, y_safe, color=BLUE, linewidth=1.9)
-    ax.scatter([5.2], [y_ok[-1]], color=ORANGE, edgecolor=INK, s=36, zorder=5)
-    ax.text(2.25, 5.45, "Smooth transit", ha="center", va="top", fontsize=7.1, color=BLUE, weight="bold")
-    ax.text(5.85, 5.75, "0.10 s\ndeadband", ha="center", va="top", fontsize=6.4, color=ORANGE)
-    ax.text(8.05, 3.65, "Lag slip/slam", ha="center", va="bottom", fontsize=6.5, color=RED)
-    ax.text(7.75, 1.80, "Bounded+SPRT", ha="center", va="top", fontsize=6.7, color=BLUE, weight="bold")
-    ax.text(5.0, 0.65, "41.4%→90.6%  |  452.9→183.6 N", ha="center", va="bottom", fontsize=7.0, color=INK)
+    ax.scatter([5.2], [y_ok[-1]], color=ORANGE, edgecolor=INK, s=34, zorder=5)
+    ax.text(2.55, 5.52, "Smooth transit", ha="center", va="top", fontsize=6.9, color=BLUE, weight="bold")
+    ax.text(5.38, 5.58, "0.10 s\ndeadband", ha="left", va="top", fontsize=6.2, color=ORANGE)
+    ax.text(8.05, 3.62, "Lag slip/slam", ha="center", va="bottom", fontsize=6.4, color=RED)
+    ax.text(7.75, 1.88, "Bounded+SPRT", ha="center", va="top", fontsize=6.6, color=BLUE, weight="bold")
+    ax.text(5.0, 0.46, "41.4%→90.6%  |  452.9→183.6 N", ha="center", va="bottom", fontsize=6.8, color=INK)
 
     # Panel (b): Post-contact bifurcation boundary (Imitation centerpiece)
     ax = fig.add_subplot(gs[0, 1])
     ax.set_xlim(0, 10)
     ax.set_ylim(0, 6.2)
     ax.set_axis_off()
-    set_panel(ax, "b", "Imitation: bifurcation boundary (§V)", pad=10.0)
+    ax.set_title("(b) Bifurcation boundary (§V)", loc="center", pad=8.0, fontsize=8.3)
     ax.add_patch(Rectangle((0.1, 0.2), 9.8, 5.7, facecolor="#F7F9FB", edgecolor=BLUE, linewidth=1.1))
-    ax.axvline(4.6, ymin=0.05, ymax=0.95, color=ORANGE, linestyle="--", linewidth=1.3)
+    ax.plot([4.6, 4.6], [1.05, 4.92], color=ORANGE, linestyle="--", linewidth=1.25, zorder=3)
     t_pre = np.linspace(0.6, 4.6, 30)
     ax.plot(t_pre, np.full_like(t_pre, 3.1), color=INK, linewidth=2.0)
     t_post = np.linspace(4.6, 9.2, 40)
-    y_norm = 3.1 + 1.45 * np.tanh((t_post - 4.6) * 0.65)
-    y_jam = 3.1 - 1.45 * np.tanh((t_post - 4.6) * 0.65)
-    y_l1 = 3.1 + 1.15 * np.tanh((t_post - 4.6) * 0.65)
+    y_norm = 3.1 + 1.42 * np.tanh((t_post - 4.6) * 0.65)
+    y_jam = 3.1 - 1.38 * np.tanh((t_post - 4.6) * 0.65)
+    y_l1 = 3.1 + 1.12 * np.tanh((t_post - 4.6) * 0.65)
     ax.plot(t_post, y_norm, color=BLUE, linewidth=1.8)
     ax.plot(t_post, y_jam, color=GREEN, linewidth=2.0)
     ax.plot(t_post, y_l1, color=RED, linestyle=":", linewidth=1.6)
-    ax.scatter([4.6], [3.1], color=ORANGE, edgecolor=INK, s=40, zorder=5)
-    ax.text(2.5, 3.55, "Identical\npre-contact", ha="center", va="bottom", fontsize=7.2, color=INK)
-    ax.text(4.6, 5.45, "$t_{\\mathrm{fb}}$", ha="center", va="top", fontsize=8.0, color=ORANGE, weight="bold")
-    ax.text(7.6, 4.80, "Normal push", ha="center", va="bottom", fontsize=7.0, color=BLUE)
-    ax.text(7.7, 3.70, "$L_1$ collapse", ha="center", va="bottom", fontsize=6.9, color=RED)
-    ax.text(7.5, 1.35, "Jammed unlatch", ha="center", va="top", fontsize=7.0, color=GREEN, weight="bold")
-    ax.text(5.0, 0.55, "Jam recovery: 35.0%→88.3%", ha="center", va="bottom", fontsize=7.0, color=INK)
+    ax.scatter([4.6], [3.1], color=ORANGE, edgecolor=INK, s=38, zorder=5)
+    ax.text(2.5, 3.50, "Identical\npre-contact", ha="center", va="bottom", fontsize=7.0, color=INK)
+    ax.text(4.6, 5.62, "$t_{\\mathrm{fb}}$", ha="center", va="top", fontsize=8.0, color=ORANGE, weight="bold")
+    ax.text(7.55, 4.78, "Normal push", ha="center", va="bottom", fontsize=6.9, color=BLUE)
+    ax.text(7.65, 3.66, "$L_1$ collapse", ha="center", va="bottom", fontsize=6.8, color=RED)
+    ax.text(7.45, 1.48, "Jammed unlatch", ha="center", va="top", fontsize=6.9, color=GREEN, weight="bold")
+    ax.text(5.0, 0.46, "Jam recovery: 35.0%→88.3%", ha="center", va="bottom", fontsize=6.8, color=INK)
 
     # Panel (c): RL opening-branch boundary
     ax = fig.add_subplot(gs[0, 2])
     ax.set_xlim(0, 10)
     ax.set_ylim(0, 6.2)
     ax.set_axis_off()
-    set_panel(ax, "c", "RL: opening boundary (§VI)", pad=10.0)
+    ax.set_title("(c) Opening boundary (§VI)", loc="center", pad=8.0, fontsize=8.3)
     ax.add_patch(Rectangle((0.1, 0.2), 9.8, 5.7, facecolor="#F7F9FB", edgecolor="#D0D7DE", linewidth=0.7))
-    ax.add_patch(Rectangle((0.2, 0.3), 2.8, 5.5, facecolor="#FDEBD0", edgecolor="none", alpha=0.55))
-    ax.axvline(3.0, ymin=0.05, ymax=0.95, color=ORANGE, linestyle="--", linewidth=1.3)
+    ax.add_patch(Rectangle((0.2, 0.95), 2.8, 4.85, facecolor="#FDEBD0", edgecolor="none", alpha=0.55))
+    ax.plot([3.0, 3.0], [1.05, 5.65], color=ORANGE, linestyle="--", linewidth=1.25, zorder=3)
     t_all = np.linspace(0.7, 9.2, 50)
-    y_b1 = 3.1 + 1.55 * np.sin((t_all - 0.7) / 8.5 * np.pi)
+    y_b1 = 3.1 + 1.50 * np.sin((t_all - 0.7) / 8.5 * np.pi)
     y_b2 = 3.1 + 0.15 * np.sin((t_all - 0.7) / 8.5 * np.pi)
-    y_b3 = 3.1 - 1.50 * np.sin((t_all - 0.7) / 8.5 * np.pi)
+    y_b3 = 3.1 - 1.42 * np.sin((t_all - 0.7) / 8.5 * np.pi)
     ax.plot(t_all, y_b1, color=RED, linewidth=2.0)
     ax.plot(t_all[t_all <= 3.0], y_b2[t_all <= 3.0], color=GREEN, linestyle="--", linewidth=1.6)
     ax.plot(t_all[t_all >= 3.0], y_b2[t_all >= 3.0], color=BLUE, linewidth=1.7)
     ax.plot(t_all[t_all <= 3.0], y_b3[t_all <= 3.0], color=GREEN, linestyle="--", linewidth=1.6)
     ax.plot(t_all[t_all >= 3.0], y_b3[t_all >= 3.0], color=BLUE, linewidth=1.7)
-    ax.scatter([0.7], [3.1], color=INK, s=30, zorder=5)
-    ax.scatter([5.3], [4.62], marker="X", color=RED, s=46, zorder=6)
-    ax.text(1.6, 5.42, "Opening\nhandoff", ha="center", va="top", fontsize=7.0, color=ORANGE, weight="bold")
-    ax.text(6.8, 4.88, "RL-locked $B_1$", ha="center", va="bottom", fontsize=6.8, color=RED)
-    ax.text(6.6, 1.45, "Intact RL continuation", ha="center", va="top", fontsize=7.0, color=BLUE, weight="bold")
-    ax.text(5.0, 0.55, "Cov 0.227→0.342 | Retry 20→78%", ha="center", va="bottom", fontsize=6.9, color=INK)
+    ax.scatter([0.7], [3.1], color=INK, s=28, zorder=5)
+    ax.scatter([5.3], [4.58], marker="X", color=RED, s=44, zorder=6)
+    ax.text(1.6, 5.52, "Opening\nhandoff", ha="center", va="top", fontsize=6.8, color=ORANGE, weight="bold")
+    ax.text(6.8, 4.84, "RL-locked $B_1$", ha="center", va="bottom", fontsize=6.7, color=RED)
+    ax.text(6.55, 1.54, "Intact RL continuation", ha="center", va="top", fontsize=6.8, color=BLUE, weight="bold")
+    ax.text(5.0, 0.46, "Cov 0.227→0.342 | Retry 20→78%", ha="center", va="bottom", fontsize=6.7, color=INK)
 
     save_fig(fig, "fig01_boundary_teaser")
 
@@ -255,14 +255,14 @@ def make_fig02_approach_contact():
     ax_a.set_xticks([50, 150, 250])
     ax_a.set_yticks([0.4, 0.7, 1.0])
     style_ax(ax_a, None)
-    set_panel(ax_a, "a", "MuJoCo $(\\tau,\\gamma)$ stability", pad=28.0)
+    set_panel(ax_a, "a", "MuJoCo $(\\tau,\\gamma)$ stability", pad=33.0)
     ax_a.legend(frameon=False, ncol=2, loc="lower left", bbox_to_anchor=(-0.03, 1.01),
                 handlelength=1.3, columnspacing=0.5, handletextpad=0.22, fontsize=6.9)
     pos_a = ax_a.get_position()
     cax = fig.add_axes([pos_a.x1 + 0.006, pos_a.y0, 0.010, pos_a.height])
     cb = fig.colorbar(im_a, cax=cax, ticks=[0, 50, 100])
     cb.ax.set_yticklabels(["0%", "50%", "100%"])
-    cb.ax.tick_params(labelsize=6.4, length=2.0, pad=2.0)
+    cb.ax.tick_params(labelsize=6.4, length=2.0, pad=33.0)
     cb.outline.set_linewidth(0.55)
     cb.outline.set_edgecolor("#6E7378")
 
@@ -287,7 +287,7 @@ def make_fig02_approach_contact():
         ax_b.spines[_sp].set_visible(True)
         ax_b.spines[_sp].set_color("#6E7378")
         ax_b.spines[_sp].set_linewidth(0.65)
-    set_panel(ax_b, "b", "Curved-rim basin", pad=28.0)
+    set_panel(ax_b, "b", "Curved-rim basin", pad=33.0)
     handles_b = [
         Patch(facecolor="#286B9B", label="Grasp"),
         Patch(facecolor="#DF9255", label="Slip"),
@@ -316,7 +316,7 @@ def make_fig02_approach_contact():
     ax_c.set_xticks([0.3, 0.5, 0.7, 0.9])
     ax_c.set_yticks([15, 35, 55])
     style_ax(ax_c, "y")
-    set_panel(ax_c, "c", "Self-locking ($0.46\\,\\mathrm{mm}$ MAE)", pad=28.0)
+    set_panel(ax_c, "c", "Self-locking ($0.46\\,\\mathrm{mm}$ MAE)", pad=33.0)
     ax_c.legend(frameon=False, ncol=2, loc="lower left", bbox_to_anchor=(-0.04, 1.01),
                 handlelength=0.85, columnspacing=0.45, handletextpad=0.22, fontsize=6.6)
 
@@ -345,7 +345,7 @@ def make_fig03_probing():
     ax_a.set_xticks([0.0, 0.1, 0.2, 0.3, 0.4])
     ax_a.set_yticks([0, 10, 20])
     style_ax(ax_a, "y")
-    set_panel(ax_a, "a", "Post-deadband separation", pad=30.0)
+    set_panel(ax_a, "a", "Post-deadband separation", pad=33.0)
     ax_a.legend(frameon=False, ncol=3, loc="lower left", bbox_to_anchor=(-0.06, 1.01),
                 handlelength=1.0, columnspacing=0.35, handletextpad=0.18, fontsize=6.5)
 
@@ -370,7 +370,7 @@ def make_fig03_probing():
     ax_b.set_xticks([2, 4, 6, 8])
     ax_b.set_yticks([0, 20, 40, 60])
     style_ax(ax_b, "y")
-    set_panel(ax_b, "b", "Wald SPRT vs. fixed $T_p$", pad=30.0)
+    set_panel(ax_b, "b", "Wald SPRT vs. fixed $T_p$", pad=33.0)
     ax_b.legend(frameon=False, ncol=2, loc="lower left", bbox_to_anchor=(-0.06, 1.01),
                 handlelength=0.95, columnspacing=0.38, handletextpad=0.20, fontsize=6.5)
 
@@ -390,7 +390,7 @@ def make_fig03_probing():
     ax_c.set(ylabel="Peak force (N)", ylim=(0, 650))
     ax_c.set_yticks([0, 300, 600])
     style_ax(ax_c, "y")
-    set_panel(ax_c, "c", "Closed-loop force ($n=800$)", pad=30.0)
+    set_panel(ax_c, "c", "Closed-loop force ($n=800$)", pad=33.0)
     ax_c.legend(frameon=False, ncol=2, loc="lower left", bbox_to_anchor=(-0.06, 1.01),
                 handlelength=0.85, columnspacing=0.38, handletextpad=0.20, fontsize=6.6)
 
@@ -415,7 +415,7 @@ def make_fig04_bifurcation():
     ax_a.set(ylim=(0, 108), ylabel="Completion (%)")
     ax_a.set_yticks([0, 50, 100])
     style_ax(ax_a, "y")
-    set_panel(ax_a, "a", "Bimodal bifurcation", pad=28.0)
+    set_panel(ax_a, "a", "Bimodal bifurcation", pad=33.0)
     ax_a.legend(frameon=False, ncol=2, loc="lower left", bbox_to_anchor=(-0.04, 1.01),
                 handlelength=0.9, columnspacing=0.45, handletextpad=0.22, fontsize=6.8)
 
@@ -432,7 +432,7 @@ def make_fig04_bifurcation():
     ax_b.set(ylim=(0, 52), ylabel="Completion (%)")
     ax_b.set_yticks([0, 25, 50])
     style_ax(ax_b, "y")
-    set_panel(ax_b, "b", "Single-physics control", pad=28.0)
+    set_panel(ax_b, "b", "Single-physics control", pad=33.0)
     ax_b.legend(frameon=False, ncol=2, loc="lower left", bbox_to_anchor=(-0.05, 1.01),
                 handlelength=0.9, columnspacing=0.40, handletextpad=0.22, fontsize=6.7)
 
@@ -449,7 +449,7 @@ def make_fig04_bifurcation():
     ax_c.set(ylim=(0, 76), ylabel="Completion (%)")
     ax_c.set_yticks([0, 35, 70])
     style_ax(ax_c, "y")
-    set_panel(ax_c, "c", "SmolVLA-450M stall gating", pad=28.0)
+    set_panel(ax_c, "c", "SmolVLA-450M stall gating", pad=33.0)
     ax_c.legend(frameon=False, ncol=2, loc="lower left", bbox_to_anchor=(-0.04, 1.01),
                 handlelength=0.9, columnspacing=0.45, handletextpad=0.22, fontsize=6.8)
 
@@ -478,7 +478,7 @@ def make_fig05_rl_narrowing_retry():
     ax_a.set_xticks([0, 20, 40])
     ax_a.set_yticks([0.0, 0.5, 1.0])
     style_ax(ax_a, "y")
-    set_panel(ax_a, "a", "Two-stage gradient flow ($B=4$)", pad=30.0)
+    set_panel(ax_a, "a", "Two-stage gradient flow ($B=4$)", pad=21.0)
     ax_a.legend(frameon=False, ncol=2, loc="lower left", bbox_to_anchor=(-0.03, 1.01),
                 handlelength=1.1, columnspacing=0.44, handletextpad=0.22, fontsize=6.7)
 
@@ -498,7 +498,7 @@ def make_fig05_rl_narrowing_retry():
     ax_top.set(ylim=(0, 1.08), ylabel="Share")
     ax_top.set_yticks([0.0, 0.5, 1.0])
     style_ax(ax_top, "y")
-    set_panel(ax_top, "b", "QueST skill share & takeover", pad=30.0)
+    set_panel(ax_top, "b", "QueST skill share & takeover", pad=21.0)
     ax_top.legend(frameon=False, ncol=2, loc="lower left", bbox_to_anchor=(-0.03, 1.03),
                   handlelength=0.90, columnspacing=0.48, handletextpad=0.22, fontsize=6.7)
 
@@ -523,7 +523,7 @@ def make_fig05_rl_narrowing_retry():
     ax_c.set(xlim=(-0.55, 4.55), ylim=(0.0, 0.85), xlabel="7B OpenVLA-OFT", ylabel="Coverage / Pass@1")
     ax_c.set_yticks([0.0, 0.4, 0.8])
     style_ax(ax_c, "y")
-    set_panel(ax_c, "c", "7B OpenVLA-OFT 3D coverage", pad=30.0)
+    set_panel(ax_c, "c", "7B OpenVLA-OFT 3D coverage", pad=21.0)
     ax_c.legend(frameon=False, ncol=2, loc="lower left", bbox_to_anchor=(-0.03, 1.03),
                 handlelength=0.95, columnspacing=0.48, handletextpad=0.24, fontsize=6.8)
 
@@ -539,7 +539,7 @@ def make_fig05_rl_narrowing_retry():
     ax_d.set(xlim=(-0.55, 5.55), ylim=(0, 106), xlabel="Hierarchical planner + SmolVLA", ylabel="MuJoCo@3 retry (%)")
     ax_d.set_yticks([0, 50, 100])
     style_ax(ax_d, "y")
-    set_panel(ax_d, "d", "Closed-loop jammed retry ($500\\,\\mathrm{Hz}$)", pad=30.0)
+    set_panel(ax_d, "d", "Closed-loop jammed retry ($500\\,\\mathrm{Hz}$)", pad=21.0)
 
     fig.canvas.draw()
     assert abs(ax_a.get_position().y1 - ax_top.get_position().y1) < 1e-4, "Top edge of (a) and (b) must match!"

@@ -1,94 +1,120 @@
-# LIBERO-SelfTest
+<div align="center">
 
-Official code and dataset-generation repository for:
+# Boundary Fragility in Chunked Robot Manipulation<br>and Post-Training
 
-**Boundary Fragility in Chunked Robot Manipulation and Post-Training**  
-*Qiancheng Zhou* (School of Future Technology, Shanghai University)
+**Qiancheng Zhou**
 
----
+School of Future Technology, Shanghai University
+
+[`zhou_3721@shu.edu.cn`](mailto:zhou_3721@shu.edu.cn)
+
+[![arXiv](https://img.shields.io/badge/arXiv-Paper-b31b1b.svg)](https://github.com/ershiyidian/libero-selftest)
+[![Dataset](https://img.shields.io/badge/%F0%9F%A4%97%20Dataset-LIBERO--SelfTest-FFD21E.svg)](https://huggingface.co/datasets/esyd/libero-selftest)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Python 3.10+](https://img.shields.io/badge/Python-3.10+-3776AB.svg)](https://www.python.org/)
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/overview-dark.png">
+  <img src="assets/overview-light.png" alt="Overview of Boundary Fragility in Chunked Robot Manipulation and Post-Training" width="840">
+</picture>
+
+<p align="center"><sub><strong>Figure 1: Boundary fragility across a chunked manipulation trajectory and post-training lifecycle.</strong> (a) Physical contact boundaries during delayed approach and initial finger-pad compliance; (b) post-contact bifurcation boundaries in chunked imitation learning; (c) opening branch boundaries in outcome-based RL post-training.</sub></p>
+
+</div>
 
 ## Overview
 
-Foundation models for robot manipulation execute multi-step **action chunks** open-loop between slow policy queries. We show that chunked execution does not degrade uniformly over time; instead, failures concentrate sharply across two kinds of boundaries:
+Foundation models for robot manipulation bridge slow inference and fast control by executing multi-step **action chunks** open-loop per query, yet frequently fail during fine contact, unseen mechanical resistance, and post-failure retries. Existing remedies assume open-loop errors accumulate uniformly over time, globally shortening horizons or averaging overlapping predictions.
 
-1. **Physical Contact Boundaries**: Observation lag induces periodic sawtooth overshoot that pushes curved-rim grasps outside friction cones, while initial elastic finger-pad compression creates a post-contact deadband that masks hidden joint resistance until rigid closure risks backstop slam.
-2. **Decision Branching Boundaries**: Supervising an unmasked action chunk across a post-contact feedback instant collapses deterministic regression onto the majority branch, while outcome-based reinforcement post-training (PPO / GRPO) narrows multi-attempt retries by collapsing opening branch choice while leaving within-branch execution intact.
+We show that smooth motion interiors are locally contractive; failures concentrate sharply across **physical contact boundaries** and **decision branching boundaries** encountered chronologically along deployment:
 
-This repository provides the **LIBERO-SelfTest** dataset-generation pipeline, core policy/memory modules, and the full suite of physics-boundary, imitation-bifurcation, and post-training audit scripts.
+- **Physical Contact Boundaries (Execution):** Periodic sawtooth lag crosses stability limits near docking and pushes curved-rim grasps outside Coulomb self-locking disks, while initial elastic finger-pad compression creates a $0.10\,\mathrm{s}$ zero-information deadband before low- and high-resistance joint displacements separate and rigid closure risks backstop slam.
+- **Post-Contact Bifurcation Boundaries (Imitation):** Once contact exposes free versus jammed motion, supervising an unmasked $L_1$ action chunk across the feedback instant $t_{\mathrm{fb}}$ collapses predictions onto the majority push branch, while unconditional asynchronous prefix skipping discards unlatch prefixes under physical stall.
+- **Opening Branch Boundaries (RL Post-Training):** Outcome-based reinforcement post-training (RIPT-VLA / GRPO / PPO) narrows multi-attempt retry diversity strictly at the **opening branch boundary** while leaving downstream execution within suppressed corridors intact—enabling zero-retraining opening handoff to recover multi-route retries at full single-try accuracy.
+
+### Empirical Highlights
+
+- **Asynchronous Approach & Curved Contact (`500 Hz` MuJoCo):** Periodic Floquet gain bounding pulls delayed VLA grasps back inside the $52.3\,\mathrm{mm}$ self-locking disk ($70.4\,\mathrm{mm} \to 51.8\,\mathrm{mm}$), lifting asynchronous task completion from **41.4%** to **90.6%**.
+- **Post-Deadband Sequential Probing (`800` Articulated Rollouts):** Online Wald SPRT after the $2$-step compliance deadband paired with closure target withdrawal resolves unseen joint resistance in **3.39 steps** at **86.9%** accuracy while cutting peak backstop force from **452.9 N** to **183.6 N** (and cutting SmolVLA-450M safety overloads by **6.5x**, from **32.5%** to **5.0%**).
+- **Causal Boundary Truncation on `LIBERO-SelfTest` (`130` Tasks, `1,040` Episodes):** Pairing causal truncation at $t_{\mathrm{fb}}$ with conditional flow matching and stall-triggered replanning raises jammed recovery from **35.0%** to **88.3%** (and restores latched SmolVLA-450M recovery from **0.0%** to **47.2%**), while leaving single-physics tasks without mid-chunk branching unchanged.
+- **Zero-Retraining Opening Handoff (`7B` OpenVLA-OFT & Closed-Loop Retry):** Running the pre-RL policy solely across the opening approach steps restores 7B VLA 3D corridor coverage (`Phys-Cov@8`) from **0.227** to **0.342** at full RL accuracy (**0.675**), and lifts `200 ms` closed-loop jammed-subgoal retry completion from **20.0%** to **78.0%**.
+
+| Lifecycle Stage | Boundary Mechanism | Failure Under Uniform Chunking | Targeted Boundary Intervention | Key Gain |
+| :--- | :--- | :--- | :--- | :--- |
+| **Approach** | Sawtooth lag & curved rim ($r_{\mathrm{crit}}$) | Jaw slip outside friction cone (`41.4%`) | Periodic Floquet bound ($\bar{\rho} < 1$) | **90.6%** async grasp |
+| **Initial Touch** | Finger-pad deadband & joint stop | Zero-info probe / `452.9 N` slam | Post-deadband Wald SPRT + withdrawal | **183.6 N** peak (`5.0%` ovld) |
+| **Continuation** | Post-contact bifurcation ($t_{\mathrm{fb}}$) | Majority-branch $L_1$ collapse (`3.3%`) | Causal mask + flow matching + stall gate | **88.3%** jam recovery |
+| **Post-Training** | Opening branch commitment ($B_1$) | Repeated blocked retries (`20.0%`) | Pre-RL opening handoff (`SFT -> RL`) | **78.0%** `200 ms` retry |
+
+## LIBERO-SelfTest Dataset
+
+The replay-verified [**LIBERO-SelfTest**](https://huggingface.co/datasets/esyd/libero-selftest) benchmark spans all **130 tasks** across the five LIBERO suites in `500 Hz` MuJoCo physics, pairing nominal pass demonstrations with contact-perturbation and recovery trajectories annotated with role masks (`setup` / `pass` / `recovery`) and changepoint-verified physical feedback instants $t_{\mathrm{fb}}$.
+
+| Suite | Tasks | Episodes | Executed Steps | Retained Demo Steps | Probe & Feedback Boundaries | Cross-Boundary Windows |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| `libero_spatial` | 10 | 80 | 23,558 | 22,358 | 221 | 6.84% |
+| `libero_object` | 10 | 80 | 25,297 | 24,097 | 216 | 6.12% |
+| `libero_goal` | 10 | 80 | 24,912 | 23,712 | 234 | 7.45% |
+| `libero_10` | 10 | 80 | 34,864 | 33,664 | 249 | 5.13% |
+| `libero_90` | 90 | 720 | 233,428 | 223,141 | 1,928 | 8.06% |
+| **Total** | **130** | **1,040** | **342,059** | **326,972** | **2,848** | **5.13% – 8.06%** |
+
+Download directly from Hugging Face:
+
+```python
+from huggingface_hub import snapshot_download
+
+dataset_dir = snapshot_download(
+    repo_id="esyd/libero-selftest",
+    repo_type="dataset",
+    local_dir="./data/libero-selftest",
+)
+```
 
 ## Repository Structure
 
 ```text
 libero-selftest/
-├── dataset/                         # LIBERO-SelfTest dataset construction & annotation
-│   ├── catalog/                     # 96-task x 10-method x 20-condition taxonomy & source binding
-│   ├── pipeline/                    # MuJoCo physical probing engine, adapters & scale-500 batch generator
-│   └── annotation/                  # Event segmentation, language annotation & SFT dataset export
-├── experiments/                     # Paper experiments (§III–§VI & Appendices A–C)
-│   ├── physics_boundaries/          # Lagged approach, Floquet bounds, curved self-locking & probing deadband
-│   ├── imitation_bifurcation/       # Cross-boundary chunk truncation, QueST / SmolVLA / VLA-Adapter audits
-│   └── post_training_audit/         # 7B VLA opening-branch coverage, GRPO subgoal retry & Pass@k scaling
-├── selftest/                        # Core recurrent memory, action-history, branching & GRPO modules
-├── figures/                         # Publication figure reproduction script & compact summary tables
-│   ├── generate_all_figures.py      # Reproduces all 7 paper figures (fig01–fig07)
-│   └── source_data/                 # Lightweight CSV/JSON summaries used by generate_all_figures.py
-├── patches/                         # Optional runtime compatibility patch for VLA-Adapter inference
-├── tests/                           # Unit tests for memory, action history, rollout queue & GRPO math
-├── requirements.txt
-└── LICENSE
+├── assets/                          # Light/dark adaptive overview figures
+├── core/                            # Causal chunk masking, physics replay & trajectory memory
+├── scripts/
+│   ├── dataset/                     # Replay-verified LIBERO-SelfTest collection, changepoints & HF export
+│   ├── physics_boundaries/          # Sawtooth Floquet delay, curved-rim basin & post-deadband Wald SPRT
+│   ├── imitation_bifurcation/       # L1 vs. Flow-ChunkNet, TaskFiLM-ResNet18 & SmolVLA-450M stall gating
+│   └── rl_posttraining/             # 7B OpenVLA-OFT RIPT audit, Countdown exact trees & MuJoCo jammed retry
+├── configs/                         # Suite splits and controller hyperparameters
+└── figures/                         # Publication figure reproduction scripts
 ```
 
-## Installation
+## Installation & Quick Start
 
 ```bash
-conda create -n libero-selftest python=3.10 -y
-conda activate libero-selftest
+git clone https://github.com/ershiyidian/libero-selftest.git
+cd libero-selftest
 pip install -r requirements.txt
 ```
 
-For MuJoCo / LIBERO headless rendering on Linux servers, set:
-
 ```bash
-export MUJOCO_GL=egl
-export PYOPENGL_PLATFORM=egl
+# 1. Build & replay-verify LIBERO-SelfTest episodes and boundary changepoints
+python scripts/dataset/collect_selftest_episodes.py --suite libero_spatial --episodes-per-task 8
+python scripts/dataset/annotate_feedback_boundaries.py --data-root ./data/libero-selftest
+
+# 2. Run approach-delay Floquet stability & post-deadband Wald SPRT probing audits
+python scripts/physics_boundaries/eval_sawtooth_delay_vla.py --delays-ms 0 100 200 300
+python scripts/physics_boundaries/eval_wald_sprt_probing.py --num-rollouts 800
+
+# 3. Train & evaluate causal boundary-masked chunk policies and SmolVLA stall gating
+python scripts/imitation_bifurcation/train_eval_bifurcation_chunks.py --mask causal_trunc
+python scripts/imitation_bifurcation/eval_smolvla_stall_gating.py --disp-gate-mm 4.5
+
+# 4. Run 7B OpenVLA-OFT opening handoff & 500 Hz MuJoCo jammed-subgoal retry
+python scripts/rl_posttraining/eval_openvla_opening_handoff.py --handoff-steps 40
+python scripts/rl_posttraining/eval_mujoco_jammed_retry.py --delay-ms 200 --attempts 3
 ```
 
-External model backbones (LIBERO, VLA-Adapter, SmolVLA, QueST, OpenVLA-OFT) and checkpoints are intentionally excluded from this repository; point each experiment's CLI path arguments or environment variables to your local dataset and checkpoint directories.
+## License and Citation
 
-## Quick Start
-
-### 1. Reproduce All 7 Paper Figures
-
-All seven vector figures (`fig01_boundary_teaser` through `fig07_app_countdown`) can be regenerated directly from the included summary tables:
-
-```bash
-python3 figures/generate_all_figures.py
-```
-
-Outputs are written to `figures/generated/` as both `.pdf` and `.png`.
-
-### 2. Run Unit Tests
-
-```bash
-PYTHONPATH=. pytest -q tests/
-```
-
-### 3. Generate LIBERO-SelfTest Trajectories
-
-See [`dataset/README.md`](dataset/README.md) for the full three-stage workflow:
-- **Catalog & source coverage**: `dataset/catalog/build_catalogue.py` and `validate_catalogue.py`
-- **MuJoCo physical probing generation**: `dataset/pipeline/run_pipeline.py` (or `dataset/pipeline/scale500/generate_500.py` for batch runs)
-- **Event segmentation & SFT export**: `dataset/annotation/run.py` and `dataset/annotation/export_sft.py`
-
-### 4. Run Core Paper Experiments
-
-- **Physics & numerical boundaries (§III–§IV, App. A & C)**: scripts in `experiments/physics_boundaries/` (`exp1_delayed_approach.py` through `exp9_drawer_hold_vs_withdraw.py`).
-- **Imitation & cross-boundary truncation (§V)**: scripts in `experiments/imitation_bifurcation/` (e.g., `run_bifurcation_table4.py`, `eval_causal_bifurcation_3seeds.py`, `train_smolvla_selftest.py`, `eval_smolvla_selftest.py`).
-- **Post-training narrowing & retry audits (§VI, App. C)**: scripts in `experiments/post_training_audit/` (e.g., `eval_7b_blocked_corridor_libero_plus.py`, `eval_grpo_subgoal_retry.py`, `eval_quest_passk.py`).
-
-## Citation
-
-If you find this codebase or **LIBERO-SelfTest** useful, please cite:
+This project is released under the [MIT License](LICENSE). If you find our code, analysis, or the `LIBERO-SelfTest` dataset useful, please consider citing:
 
 ```bibtex
 @article{zhou2026boundary,
@@ -98,7 +124,3 @@ If you find this codebase or **LIBERO-SelfTest** useful, please cite:
   year    = {2026}
 }
 ```
-
-## License
-
-Released under the [MIT License](LICENSE).
