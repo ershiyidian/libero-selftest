@@ -1,0 +1,71 @@
+{
+  "model": "OpenVLA-OFT-7B (32-layer Llama-2) SFT vs RIPT-VLA RL",
+  "benchmark": "Pose-Perturbed LIBERO-Spatial (10 tasks, K=8, Laplace scale=1.15)",
+  "n_rollouts": 400,
+  "elapsed_s": 1825.7,
+  "summary": {
+    "rl_ctrl": {
+      "pass1": 0.675,
+      "pass4": 0.7,
+      "pass8": 0.7,
+      "phys_cov8": 0.227
+    },
+    "early_L0_11": {
+      "pass1": 0.662,
+      "pass4": 0.7,
+      "pass8": 0.7,
+      "phys_cov8": 0.252
+    },
+    "midlate_L16_31": {
+      "pass1": 0.662,
+      "pass4": 0.7,
+      "pass8": 0.7,
+      "phys_cov8": 0.228
+    },
+    "entrance_handoff": {
+      "pass1": 0.675,
+      "pass4": 0.7,
+      "pass8": 0.7,
+      "phys_cov8": 0.342
+    },
+    "sft_base": {
+      "pass1": 0.662,
+      "pass4": 0.7,
+      "pass8": 0.7,
+      "phys_cov8": 0.314
+    }
+  },
+  "corridor_thresh_mm": 15.0,
+  "summary_30mm": {
+    "rl_ctrl": {
+      "pass1": 0.675,
+      "pass4": 0.7,
+      "pass8": 0.7,
+      "phys_cov8": 0.373
+    },
+    "early_L0_11": {
+      "pass1": 0.662,
+      "pass4": 0.7,
+      "pass8": 0.7,
+      "phys_cov8": 0.373
+    },
+    "midlate_L16_31": {
+      "pass1": 0.662,
+      "pass4": 0.7,
+      "pass8": 0.7,
+      "phys_cov8": 0.373
+    },
+    "entrance_handoff": {
+      "pass1": 0.675,
+      "pass4": 0.7,
+      "pass8": 0.7,
+      "phys_cov8": 0.307
+    },
+    "sft_base": {
+      "pass1": 0.662,
+      "pass4": 0.7,
+      "pass8": 0.7,
+      "phys_cov8": 0.287
+    }
+  }
+}

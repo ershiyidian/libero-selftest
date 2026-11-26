@@ -1,0 +1,204 @@
+diff --git a/experiments/robot/libero/libero_utils.py b/experiments/robot/libero/libero_utils.py
+index 28eb8e2..3b6841e 100644
+--- a/experiments/robot/libero/libero_utils.py
++++ b/experiments/robot/libero/libero_utils.py
+@@ -5,7 +5,6 @@ import os
+ 
+ import imageio
+ import numpy as np
+-import tensorflow as tf
+ from libero.libero import get_libero_path
+ from libero.libero.envs import OffScreenRenderEnv
+ 
+diff --git a/experiments/robot/openvla_utils.py b/experiments/robot/openvla_utils.py
+index f1d512f..0d7605c 100644
+--- a/experiments/robot/openvla_utils.py
++++ b/experiments/robot/openvla_utils.py
+@@ -1,7 +1,9 @@
+ """Utils for evaluating VLA-Adapter or fine-tuned VLA-Adapter policies."""
+ 
+ import filecmp
++import io
+ import json
++import math
+ import os
+ import shutil
+ import time
+@@ -12,7 +14,6 @@ from typing import Any, Dict, List, Optional, Tuple, Union
+ import json_numpy
+ import numpy as np
+ import requests
+-import tensorflow as tf
+ import torch
+ from huggingface_hub import HfApi, hf_hub_download
+ from PIL import Image
+@@ -30,8 +31,8 @@ from prismatic.models.projectors import NoisyActionProjector, ProprioProjector
+ from prismatic.vla.constants import (
+     ACTION_DIM,
+     ACTION_PROPRIO_NORMALIZATION_TYPE,
++    NormalizationType,
+ )
+-from prismatic.vla.datasets.rlds.utils.data_utils import NormalizationType
+ 
+ # Initialize important constants
+ DATE = time.strftime("%Y_%m_%d")
+@@ -561,16 +562,19 @@ def resize_image_for_policy(img: np.ndarray, resize_size: Union[int, Tuple[int,
+     if isinstance(resize_size, int):
+         resize_size = (resize_size, resize_size)
+ 
+-    # Resize using the same pipeline as in RLDS dataset builder
+-    img = tf.image.encode_jpeg(img)  # Encode as JPEG
+-    img = tf.io.decode_image(img, expand_animations=False, dtype=tf.uint8)  # Decode back
+-    img = tf.image.resize(img, resize_size, method="lanczos3", antialias=True)
+-    img = tf.cast(tf.clip_by_value(tf.round(img), 0, 255), tf.uint8)
+-
+-    return img.numpy()
++    # 推理环境可独立于TensorFlow安装。这里保留JPEG往返和Lanczos抗锯齿缩放。
++    # PIL和TensorFlow的Lanczos3细节可能存在细微像素差异，正式基准需分别报告。
++    stream = io.BytesIO()
++    Image.fromarray(img).save(stream, format="JPEG", quality=95)
++    stream.seek(0)
++    with Image.open(stream) as restored:
++        result = restored.convert("RGB").resize(
++            (resize_size[1], resize_size[0]), Image.Resampling.LANCZOS
++        )
++    return np.asarray(result, dtype=np.uint8)
+ 
+ 
+-def crop_and_resize(image: tf.Tensor, crop_scale: float, batch_size: int) -> tf.Tensor:
++def crop_and_resize(image: np.ndarray, crop_scale: float, batch_size: int) -> np.ndarray:
+     """
+     Center-crop an image and resize it back to original dimensions.
+ 
+@@ -584,40 +588,28 @@ def crop_and_resize(image: tf.Tensor, crop_scale: float, batch_size: int) -> tf.
+     Returns:
+         tf.Tensor: The cropped and resized image
+     """
+-    # Handle 3D inputs by adding batch dimension if needed
+-    assert image.shape.ndims in (3, 4), "Image must be 3D or 4D tensor"
+-    expanded_dims = False
+-    if image.shape.ndims == 3:
+-        image = tf.expand_dims(image, axis=0)
+-        expanded_dims = True
+-
+-    # Calculate crop dimensions (note: we use sqrt(crop_scale) for h/w)
+-    new_heights = tf.reshape(tf.clip_by_value(tf.sqrt(crop_scale), 0, 1), shape=(batch_size,))
+-    new_widths = tf.reshape(tf.clip_by_value(tf.sqrt(crop_scale), 0, 1), shape=(batch_size,))
+-
+-    # Create bounding box for the crop
+-    height_offsets = (1 - new_heights) / 2
+-    width_offsets = (1 - new_widths) / 2
+-    bounding_boxes = tf.stack(
+-        [
+-            height_offsets,
+-            width_offsets,
+-            height_offsets + new_heights,
+-            width_offsets + new_widths,
+-        ],
+-        axis=1,
+-    )
+-
+-    # Apply crop and resize
+-    image = tf.image.crop_and_resize(
+-        image, bounding_boxes, tf.range(batch_size), (OPENVLA_IMAGE_SIZE, OPENVLA_IMAGE_SIZE)
+-    )
+-
+-    # Remove batch dimension if it was added
+-    if expanded_dims:
+-        image = image[0]
+-
+-    return image
++    value = np.asarray(image, dtype=np.float32)
++    expanded = value.ndim == 3
++    if expanded:
++        value = value[None]
++    if value.ndim != 4 or value.shape[0] != batch_size or not 0 < crop_scale <= 1:
++        raise ValueError("Expected NHWC image batch and a crop ratio in (0,1]")
++    result = []
++    scale = math.sqrt(crop_scale)
++    for item in value:
++        height, width = item.shape[:2]
++        border_x = (width - 1) * (1 - scale) * 0.5
++        border_y = (height - 1) * (1 - scale) * 0.5
++        pil = Image.fromarray(np.uint8(np.clip(np.rint(item * 255), 0, 255)))
++        cropped = pil.transform(
++            (OPENVLA_IMAGE_SIZE, OPENVLA_IMAGE_SIZE),
++            Image.Transform.EXTENT,
++            (border_x, border_y, width - 1 - border_x, height - 1 - border_y),
++            resample=Image.Resampling.BILINEAR,
++        )
++        result.append(np.asarray(cropped, dtype=np.float32) / 255.0)
++    result = np.stack(result)
++    return result[0] if expanded else result
+ 
+ 
+ def center_crop_image(image: Union[np.ndarray, Image.Image]) -> Image.Image:
+@@ -633,24 +625,9 @@ def center_crop_image(image: Union[np.ndarray, Image.Image]) -> Image.Image:
+     batch_size = 1
+     crop_scale = 0.9
+ 
+-    # Convert to TF Tensor if needed
+-    if not isinstance(image, tf.Tensor):
+-        image = tf.convert_to_tensor(np.array(image))
+-
+-    orig_dtype = image.dtype
+-
+-    # Convert to float32 in range [0,1]
+-    image = tf.image.convert_image_dtype(image, tf.float32)
+-
+-    # Apply center crop and resize
+-    image = crop_and_resize(image, crop_scale, batch_size)
+-
+-    # Convert back to original data type
+-    image = tf.clip_by_value(image, 0, 1)
+-    image = tf.image.convert_image_dtype(image, orig_dtype, saturate=True)
+-
+-    # Convert to PIL Image
+-    return Image.fromarray(image.numpy()).convert("RGB")
++    value = np.asarray(image, dtype=np.uint8)
++    result = crop_and_resize(value.astype(np.float32) / 255, crop_scale, batch_size)
++    return Image.fromarray(np.uint8(np.clip(np.rint(result * 255), 0, 255))).convert("RGB")
+ 
+ 
+ def check_image_format(image: Any) -> None:
+diff --git a/experiments/robot/robot_utils.py b/experiments/robot/robot_utils.py
+index f294dd8..3c89e3e 100644
+--- a/experiments/robot/robot_utils.py
++++ b/experiments/robot/robot_utils.py
+@@ -203,8 +203,6 @@ def invert_gripper_action(action: np.ndarray) -> np.ndarray:
+ 
+ # -------- Msgpack for VLA: Start ----------
+ 
+-import msgpack
+-import msgpack_numpy
+ from requests.adapters import HTTPAdapter
+ from urllib3.util.retry import Retry
+ import requests
+@@ -262,6 +260,9 @@ class MsgPackHttpClientPolicy:
+         Returns:
+             Dict[str, Any]: The action dictionary from the server.
+         """
++        import msgpack
++        import msgpack_numpy
++
+         packed_observation = msgpack.packb(observation, default=msgpack_numpy.encode, use_bin_type=True)
+         try:
+             response = self.session.post(self.infer_url, data=packed_observation, timeout=30)
+@@ -276,4 +277,4 @@ class MsgPackHttpClientPolicy:
+             raise e
+         
+         
+-# -------- Msgpack for VLA: End ----------
+\ No newline at end of file
++# -------- Msgpack for VLA: End ----------
+diff --git a/prismatic/vla/__init__.py b/prismatic/vla/__init__.py
+index 5d2af70..8d49d6d 100644
+--- a/prismatic/vla/__init__.py
++++ b/prismatic/vla/__init__.py
+@@ -1 +1,5 @@
+-from .materialize import get_vla_dataset_and_collator
++def get_vla_dataset_and_collator(*args, **kwargs):
++    # 评测及动作头测试不需要导入 TensorFlow RLDS 数据训练栈。
++    from .materialize import get_vla_dataset_and_collator as make_dataset
++
++    return make_dataset(*args, **kwargs)

@@ -1,0 +1,192 @@
+{
+  "elapsed_s": 645.07,
+  "basin_25x25_counts": {
+    "stable_grasp": 137,
+    "transient_lift_slip": 249,
+    "rim_graze": 160,
+    "miss": 79
+  },
+  "multi_object_selflocking": {
+    "Akita black bowl": {
+      "0.3": {
+        "r_emp_mm": 52.62,
+        "succ_pct": 63.2,
+        "mu_verified": 0.3
+      },
+      "0.5": {
+        "r_emp_mm": 52.62,
+        "succ_pct": 63.2,
+        "mu_verified": 0.5
+      },
+      "0.7": {
+        "r_emp_mm": 52.62,
+        "succ_pct": 63.2,
+        "mu_verified": 0.7
+      },
+      "0.9": {
+        "r_emp_mm": 52.62,
+        "succ_pct": 63.2,
+        "mu_verified": 0.9
+      }
+    },
+    "Ceramic white bowl": {
+      "0.3": {
+        "r_emp_mm": 58.56,
+        "succ_pct": 73.7,
+        "mu_verified": 0.3
+      },
+      "0.5": {
+        "r_emp_mm": 56.46,
+        "succ_pct": 89.5,
+        "mu_verified": 0.5
+      },
+      "0.7": {
+        "r_emp_mm": 56.46,
+        "succ_pct": 63.2,
+        "mu_verified": 0.7
+      },
+      "0.9": {
+        "r_emp_mm": 54.38,
+        "succ_pct": 78.9,
+        "mu_verified": 0.9
+      }
+    },
+    "Porcelain mug": {
+      "0.3": {
+        "r_emp_mm": 59.59,
+        "succ_pct": 100.0,
+        "mu_verified": 0.3
+      },
+      "0.5": {
+        "r_emp_mm": 51.52,
+        "succ_pct": 73.7,
+        "mu_verified": 0.5
+      },
+      "0.7": {
+        "r_emp_mm": 49.84,
+        "succ_pct": 68.4,
+        "mu_verified": 0.7
+      },
+      "0.9": {
+        "r_emp_mm": 49.84,
+        "succ_pct": 68.4,
+        "mu_verified": 0.9
+      }
+    },
+    "Wine bottle shoulder": {
+      "0.3": {
+        "r_emp_mm": 35.0,
+        "succ_pct": 89.5,
+        "mu_verified": 0.3
+      },
+      "0.5": {
+        "r_emp_mm": 31.0,
+        "succ_pct": 73.7,
+        "mu_verified": 0.5
+      },
+      "0.7": {
+        "r_emp_mm": 31.0,
+        "succ_pct": 73.7,
+        "mu_verified": 0.7
+      },
+      "0.9": {
+        "r_emp_mm": 40.0,
+        "succ_pct": 100.0,
+        "mu_verified": 0.9
+      }
+    }
+  },
+  "c_handle_24poses": {
+    "direct_pull": {
+      "n": 24,
+      "slot_reached": 0,
+      "successes": 0,
+      "rate_pct": 0.0,
+      "mean_opening_mm": 0.4,
+      "mean_min_clearance_mm": 4.7
+    },
+    "staircase_harmonic": {
+      "n": 24,
+      "slot_reached": 24,
+      "successes": 24,
+      "rate_pct": 100.0,
+      "mean_opening_mm": 147.4,
+      "mean_min_clearance_mm": 4.05
+    },
+    "ghost_cell_harmonic": {
+      "n": 24,
+      "slot_reached": 24,
+      "successes": 24,
+      "rate_pct": 100.0,
+      "mean_opening_mm": 141.7,
+      "mean_min_clearance_mm": 1.2
+    }
+  },
+  "closed_loop_sprt": {
+    "unmasked_cross_feedback": {
+      "n": 160,
+      "overall_succ_pct": 95.0,
+      "low_succ_pct": 100.0,
+      "high_succ_pct": 90.0,
+      "regime_acc_pct": 0.0,
+      "mean_probe_steps": 0.0,
+      "near_crit_probe_steps": 0.0,
+      "mean_total_steps": 61.4,
+      "mean_peak_force_N": 494.3,
+      "low_peak_force_N": 594.2,
+      "high_peak_force_N": 394.4
+    },
+    "fixed_tp2_withdraw": {
+      "n": 160,
+      "overall_succ_pct": 85.6,
+      "low_succ_pct": 93.8,
+      "high_succ_pct": 77.5,
+      "regime_acc_pct": 76.2,
+      "mean_probe_steps": 2.0,
+      "near_crit_probe_steps": 2.0,
+      "mean_total_steps": 64.8,
+      "mean_peak_force_N": 217.0,
+      "low_peak_force_N": 196.9,
+      "high_peak_force_N": 237.0
+    },
+    "fixed_tp6_hold": {
+      "n": 160,
+      "overall_succ_pct": 95.0,
+      "low_succ_pct": 100.0,
+      "high_succ_pct": 90.0,
+      "regime_acc_pct": 85.6,
+      "mean_probe_steps": 6.0,
+      "near_crit_probe_steps": 6.0,
+      "mean_total_steps": 74.0,
+      "mean_peak_force_N": 452.9,
+      "low_peak_force_N": 544.2,
+      "high_peak_force_N": 361.7
+    },
+    "fixed_tp6_withdraw": {
+      "n": 160,
+      "overall_succ_pct": 95.0,
+      "low_succ_pct": 100.0,
+      "high_succ_pct": 90.0,
+      "regime_acc_pct": 84.4,
+      "mean_probe_steps": 6.0,
+      "near_crit_probe_steps": 6.0,
+      "mean_total_steps": 65.3,
+      "mean_peak_force_N": 187.4,
+      "low_peak_force_N": 185.0,
+      "high_peak_force_N": 189.9
+    },
+    "wald_sprt_withdraw": {
+      "n": 160,
+      "overall_succ_pct": 92.5,
+      "low_succ_pct": 100.0,
+      "high_succ_pct": 85.0,
+      "regime_acc_pct": 86.9,
+      "mean_probe_steps": 3.39,
+      "near_crit_probe_steps": 3.81,
+      "mean_total_steps": 65.3,
+      "mean_peak_force_N": 183.6,
+      "low_peak_force_N": 160.8,
+      "high_peak_force_N": 206.5
+    }
+  }
+}

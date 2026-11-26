@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+
+# Generated figures, logs & experiment outputs
+figures/generated/
+outputs/
+results/
+logs/
+runs/
+wandb/
+*.log
+MUJOCO_LOG.TXT
+
+# Large datasets, media & checkpoints
+checkpoints/
+weights/
+models/
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.bin
+*.h5
+*.hdf5
+*.parquet
+*.npz
+*.npy
+*.mp4
+*.avi
+*.tar.gz
+*.zip
+
+# OS & Editors
+.DS_Store
+.vscode/
+.idea/
+.env
